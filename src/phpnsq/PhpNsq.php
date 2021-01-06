@@ -7,9 +7,9 @@ use Exception;
 use OkStuff\PhpNsq\Command\Base as SubscribeCommand;
 use OkStuff\PhpNsq\Tunnel\Pool;
 use OkStuff\PhpNsq\Tunnel\Tunnel;
-use OkStuff\PhpNsq\Utility\Logging;
 use OkStuff\PhpNsq\Wire\Reader;
 use OkStuff\PhpNsq\Wire\Writer;
+use Psr\Log\LoggerInterface;
 
 class PhpNsq
 {
@@ -19,63 +19,63 @@ class PhpNsq
     private $topic;
     private $reader;
 
-    public function __construct($nsq)
+    public function __construct(array $nsqConfig, LoggerInterface $logger)
     {
         $this->reader = new reader();
-        $this->logger = new Logging("PHPNSQ", $nsq["nsq"]["logdir"]);
-        $this->pool   = new Pool($nsq);
+        $this->logger = $logger;
+        $this->pool   = new Pool($nsqConfig);
     }
 
-    public function getLogger()
+    public function getLogger(): LoggerInterface
     {
         return $this->logger;
     }
 
-    public function setChannel($channel)
+    public function setChannel($channel): PhpNsq
     {
         $this->channel = $channel;
 
         return $this;
     }
 
-    public function setTopic($topic)
+    public function setTopic($topic): PhpNsq
     {
         $this->topic = $topic;
 
         return $this;
     }
 
-    public function publish($message)
+    public function publish($message): void
     {
         try {
             $tunnel = $this->pool->getTunnel();
             $tunnel->write(Writer::pub($this->topic, $message));
         } catch (Exception $e) {
-            $this->logger->error("publish error", $e);
+            $this->logger->error("publish error", [$e]);
         }
     }
 
-    public function publishMulti(...$bodies)
+    public function publishMulti(...$bodies): void
     {
         try {
             $tunnel = $this->pool->getTunnel();
             $tunnel->write(Writer::mpub($this->topic, $bodies));
         } catch (Exception $e) {
-            $this->logger->error("publish error", $e);
+            $this->logger->error("publish error", [$e]);
         }
     }
 
-    public function publishDefer($message, $deferTime)
+    public function publishDefer($message, $deferTime): void
     {
         try {
             $tunnel = $this->pool->getTunnel();
             $tunnel->write(Writer::dpub($this->topic, $deferTime, $message));
         } catch (Exception $e) {
-            $this->logger->error("publish error", $e);
+            $this->logger->error("publish error", [$e]);
         }
     }
 
-    public function subscribe(SubscribeCommand $cmd, Closure $callback)
+    public function subscribe(SubscribeCommand $cmd, Closure $callback): void
     {
         try {
             $tunnel = $this->pool->getTunnel();
@@ -87,11 +87,11 @@ class PhpNsq
 
             $tunnel->write(Writer::sub($this->topic, $this->channel))->write(Writer::rdy(1));
         } catch (Exception $e) {
-            $this->logger->error("subscribe error", $e);
+            $this->logger->error("subscribe error", [$e]);
         }
     }
 
-    protected function handleMessage(Tunnel $tunnel, $callback)
+    protected function handleMessage(Tunnel $tunnel, $callback): void
     {
         $reader = $this->reader->bindTunnel($tunnel)->bindFrame();
 
@@ -101,9 +101,9 @@ class PhpNsq
 
             $msg = $reader->getMessage();
             try {
-                call_user_func($callback, $msg);
+                $callback($msg);
             } catch (Exception $e) {
-                $this->logger->error("Will be requeued: ", $e->getMessage());
+                $this->logger->error("Will be requeued: ", [$e->getMessage()]);
 
                 $tunnel->write(Writer::touch($msg->getId()))
                     ->write(Writer::req(
@@ -117,7 +117,7 @@ class PhpNsq
         } elseif ($reader->isOk()) {
             $this->logger->info('Ignoring "OK" frame in SUB loop');
         } else {
-            $this->logger->error("Error/unexpected frame received: ", $reader);
+            $this->logger->error("Error/unexpected frame received: ", [$reader]);
         }
     }
 }
