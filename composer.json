@@ -1,5 +1,5 @@
 {
-    "name": "igusev/phpnsq",
+    "name": "pecherskiy-v/phpnsq",
     "description": "PHP Client for nsq",
     "type": "library",
     "keywords": ["nsq", "queue"],
