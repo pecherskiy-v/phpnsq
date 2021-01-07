@@ -6,18 +6,19 @@ use Closure;
 use OkStuff\PhpNsq\PhpNsq;
 use React\EventLoop\Factory;
 use Symfony\Component\Console\Command\Command;
+use Psr\Log\LoggerInterface;
 
 class Base extends Command
 {
     protected static $phpnsq;
-    private static   $loop;
+    protected static $loop;
 
-    public function __construct(array $config = null, $name = null)
+    public function __construct(array $config = null, $name = null, ?LoggerInterface $logger = null)
     {
         parent::__construct($name);
 
-        self::$loop   = Factory::create();
-        self::$phpnsq = new PhpNsq($config);
+        self::$loop = Factory::create();
+        self::$phpnsq = new PhpNsq($config, $logger);
     }
 
     public function runLoop()
