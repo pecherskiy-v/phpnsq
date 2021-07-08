@@ -15,7 +15,7 @@ use React\EventLoop\ExtEvLoop;
 use React\EventLoop\ExtLibevLoop;
 use React\EventLoop\ExtUvLoop;
 
-class Base extends Command
+class Base extends Command implements NsqCommandInterface
 {
     protected static PhpNsq $phpnsq;
     protected static ExtUvLoop|ExtLibevLoop|ExtEvLoop|LoopInterface|ExtEventLoop|ExtLibeventLoop|StreamSelectLoop $loop;
