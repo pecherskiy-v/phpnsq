@@ -81,6 +81,44 @@ class Config
         'max' => 5,
     ];
 
+    private mixed $clientID;
+    private mixed $hostname;
+    private mixed $userAgent;
+
+    private int $heartbeatInterval = 30;
+    private array $sampleRate = [
+        'min' => 0,
+        'max' => 99,
+    ];
+
+    private bool $tlsV1 = true;
+    //TODO:
+    private mixed $tlsConfig;
+
+    //TODO:
+    private bool $deflate = true;
+    private array $deflateLevel = [
+        'default' => 6,
+        'min' => 1,
+        'max' => 9,
+    ];
+    private bool $snappy = true;
+
+    private int $outputBufferSize = 16384;
+    private float $outputBufferTimeout = 0.25;
+
+    private array $maxInFlight = [
+        'default' => 1,
+        'min' => 0,
+    ];
+    private array $msgTimeout = [
+        'min' => 0,
+    ];
+
+    private mixed $authSecret;
+
+    private bool $blocking = true;
+
     public function __construct(
         public string $host,
         public int $port
@@ -108,6 +146,7 @@ class Config
 
     /**
      * check if all the value is between min and max value.
+     *
      * @return bool
      * @throws Exception
      */
