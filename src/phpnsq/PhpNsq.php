@@ -18,6 +18,8 @@ class PhpNsq
     private $channel;
     private $topic;
     private $reader;
+    
+    private $inFlight = 50;
 
     public function __construct(array $nsqConfig, LoggerInterface $logger)
     {
@@ -34,6 +36,13 @@ class PhpNsq
     public function setChannel($channel): PhpNsq
     {
         $this->channel = $channel;
+
+        return $this;
+    }
+
+    public function setInFlight(int $inFlight): PhpNsq
+    {
+        $this->inFlight = $inFlight;
 
         return $this;
     }
@@ -85,7 +94,7 @@ class PhpNsq
                 $this->handleMessage($tunnel, $callback);
             });
 
-            $tunnel->write(Writer::sub($this->topic, $this->channel))->write(Writer::rdy(1));
+            $tunnel->write(Writer::sub($this->topic, $this->channel))->write(Writer::rdy($this->inFlight));
         } catch (Exception $e) {
             $this->logger->error("subscribe error", [$e]);
         }
@@ -98,7 +107,6 @@ class PhpNsq
         if ($reader->isHeartbeat()) {
             $tunnel->write(Writer::nop());
         } elseif ($reader->isMessage()) {
-
             $msg = $reader->getMessage();
             try {
                 $callback($msg);
@@ -113,7 +121,7 @@ class PhpNsq
             }
 
             $tunnel->write(Writer::fin($msg->getId()))
-                ->write(Writer::rdy(1));
+                ->write(Writer::rdy($this->inFlight));
         } elseif ($reader->isOk()) {
             $this->logger->info('Ignoring "OK" frame in SUB loop');
         } else {
