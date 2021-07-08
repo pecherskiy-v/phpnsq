@@ -13,13 +13,13 @@ use Psr\Log\LoggerInterface;
 
 class PhpNsq
 {
-    private $pool;
-    private $logger;
-    private $channel;
-    private $topic;
-    private $reader;
+    private Pool $pool;
+    private LoggerInterface $logger;
+    private string $channel;
+    private string $topic;
+    private Reader $reader;
     
-    private $inFlight = 50;
+    private int $inFlight = 50;
 
     public function __construct(array $nsqConfig, LoggerInterface $logger)
     {
@@ -33,7 +33,7 @@ class PhpNsq
         return $this->logger;
     }
 
-    public function setChannel($channel): PhpNsq
+    public function setChannel(string $channel): PhpNsq
     {
         $this->channel = $channel;
 
@@ -47,7 +47,7 @@ class PhpNsq
         return $this;
     }
 
-    public function setTopic($topic): PhpNsq
+    public function setTopic(string $topic): PhpNsq
     {
         $this->topic = $topic;
 

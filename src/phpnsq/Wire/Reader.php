@@ -9,29 +9,32 @@ use OkStuff\PhpNsq\Utility\IntPacker;
 
 class Reader
 {
-    const TYPE_RESPONSE = 0;
-    const TYPE_ERROR    = 1;
-    const TYPE_MESSAGE  = 2;
+    public const TYPE_RESPONSE = 0;
 
-    const HEARTBEAT = "_heartbeat_";
-    const OK        = "OK";
+    public const TYPE_ERROR = 1;
 
-    private $tunnel;
-    private $frame;
+    public const TYPE_MESSAGE = 2;
+
+    public const HEARTBEAT = "_heartbeat_";
+
+    public const OK = "OK";
+
+    private ?Tunnel $tunnel;
+    private array $frame;
 
     public function __construct(Tunnel $tunnel = null)
     {
         $this->tunnel = $tunnel;
     }
 
-    public function bindTunnel(Tunnel $tunnel)
+    public function bindTunnel(Tunnel $tunnel): static
     {
         $this->tunnel = $tunnel;
 
         return $this;
     }
 
-    public function bindFrame()
+    public function bindFrame(): static
     {
         $size = 0;
         $type = 0;
@@ -72,46 +75,32 @@ class Reader
     //                         (uint16)
     //                          2-byte
     //                         attempts
-    public function getMessage()
+
+    private function readInt($size): string
+    {
+        [, $tmp] = unpack("N", $this->tunnel->read($size));
+
+        return sprintf("%u", $tmp);
+    }
+
+    private function readString($size): string
+    {
+        $bytes = unpack("c{$size}chars", $this->tunnel->read($size));
+
+        return implode(array_map("chr", $bytes));
+    }
+
+    public function getMessage(): ?Message
     {
         if (null !== $this->frame && self::TYPE_MESSAGE == $this->frame["type"]) {
             return (new Message())->setTimestamp($this->readInt64(8))
-                ->setAttempts($this->readUInt16(2))
-                ->setId($this->readString(16))
-                ->setBody($this->readString($this->frame["size"] - 30))
-                ->setDecoded();
+                                  ->setAttempts($this->readUInt16(2))
+                                  ->setId($this->readString(16))
+                                  ->setBody($this->readString($this->frame["size"] - 30))
+                                  ->setDecoded();
         }
 
         return null;
-    }
-
-    public function isMessage()
-    {
-        return self::TYPE_MESSAGE == $this->frame["type"];
-    }
-
-    public function isHeartbeat()
-    {
-        return $this->isResponse(self::HEARTBEAT);
-    }
-
-    public function isOk()
-    {
-        return $this->isResponse(self::OK);
-    }
-
-    public function isResponse($response = null)
-    {
-        return isset($this->frame["response"])
-            && self::TYPE_RESPONSE == $this->frame["type"]
-            && (null === $response || $response === $this->frame["response"]);
-    }
-
-    private function readInt($size)
-    {
-        list(, $tmp) = unpack("N", $this->tunnel->read($size));
-
-        return sprintf("%u", $tmp);
     }
 
     private function readInt64($size)
@@ -124,10 +113,25 @@ class Reader
         return IntPacker::uInt16($this->tunnel->read($size));
     }
 
-    private function readString($size)
+    public function isMessage(): bool
     {
-        $bytes = unpack("c{$size}chars", $this->tunnel->read($size));
+        return self::TYPE_MESSAGE == $this->frame["type"];
+    }
 
-        return implode(array_map("chr", $bytes));
+    public function isHeartbeat(): bool
+    {
+        return $this->isResponse(self::HEARTBEAT);
+    }
+
+    public function isResponse($response = null): bool
+    {
+        return isset($this->frame["response"])
+               && self::TYPE_RESPONSE == $this->frame["type"]
+               && (null === $response || $response === $this->frame["response"]);
+    }
+
+    public function isOk(): bool
+    {
+        return $this->isResponse(self::OK);
     }
 }

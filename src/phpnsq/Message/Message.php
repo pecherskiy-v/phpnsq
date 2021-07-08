@@ -4,139 +4,97 @@ namespace OkStuff\PhpNsq\Message;
 
 class Message
 {
-    private $decoded = false;
-    private $id;
-    private $body;
-    private $timestamp;
-    private $attempts;
-    private $nsqdAddr;
-    private $delegate;
+    private bool $decoded = false;
+    private mixed $id;
+    private mixed $body;
+    private mixed $timestamp;
+    private mixed $attempts;
+    private mixed $nsqdAddr;
+    private mixed $delegate;
 
     public function __construct()
     {
         $this->timestamp = microtime(true);
     }
 
-    /**
-     * @return bool
-     */
-    public function isDecoded()
+    public function isDecoded(): bool
     {
         return $this->decoded;
     }
 
-    public function setDecoded()
+    public function setDecoded(): static
     {
         $this->decoded = true;
 
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getId()
+    public function getId(): mixed
     {
         return $this->id;
     }
 
-    /**
-     * @param mixed $id
-     */
-    public function setId($id)
+    public function setId($id): static
     {
         $this->id = $id;
 
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getBody()
+    public function getBody(): mixed
     {
         return $this->body;
     }
 
-    /**
-     * @param mixed $body
-     */
-    public function setBody($body)
+    public function setBody($body): static
     {
         $this->body = $body;
 
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getTimestamp()
+    public function getTimestamp(): mixed
     {
         return $this->timestamp;
     }
 
-    /**
-     * @param mixed $timestamp
-     */
-    public function setTimestamp($timestamp = null)
+    public function setTimestamp(mixed $timestamp = null): static
     {
-        if (null === $timestamp) {
-            $this->timestamp = microtime(true);
-        }
-        $this->timestamp = $timestamp;
-
+        $this->timestamp = $timestamp ?? microtime(true);
+     
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getAttempts()
+    public function getAttempts(): mixed
     {
         return $this->attempts;
     }
 
-    /**
-     * @param mixed $attempts
-     */
-    public function setAttempts($attempts)
+    public function setAttempts($attempts): static
     {
         $this->attempts = $attempts;
 
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getNsqdAddr()
+    public function getNsqdAddr(): mixed
     {
         return $this->nsqdAddr;
     }
 
-    /**
-     * @param mixed $nsqdAddr
-     */
-    public function setNsqdAddr($nsqdAddr)
+    public function setNsqdAddr($nsqdAddr): static
     {
         $this->nsqdAddr = $nsqdAddr;
 
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getDelegate()
+    public function getDelegate(): mixed
     {
         return $this->delegate;
     }
 
-    /**
-     * @param mixed $delegate
-     */
-    public function setDelegate($delegate)
+    public function setDelegate($delegate): static
     {
         $this->delegate = $delegate;
 

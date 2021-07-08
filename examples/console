@@ -1,16 +1,17 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__.'/../vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Symfony\Component\Console\Application;
+
 //use OkStuff\PhpNsq\Command\Subscribe;
 
-require __DIR__.'/subscribe.php';
+require __DIR__ . '/subscribe.php';
 
 $application = new Application();
 
-$config = require __DIR__.'/../src/config/phpnsq.php';
+$config = require __DIR__ . '/../src/config/phpnsq.php';
 
 $application->add(new Subscribe($config));
 

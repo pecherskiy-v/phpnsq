@@ -5,26 +5,28 @@ namespace OkStuff\PhpNsq\Tunnel;
 use OkStuff\PhpNsq\Utility\Stream;
 use OkStuff\PhpNsq\Wire\Writer;
 
+use function strlen;
+
 class Tunnel
 {
-    private $config;
+    private Config $config;
     private $sock;
-    private $writer = [];
-    private $reader = [];
+    private array $writer = [];
+    private array $reader = [];
 
-    private $identify = false;
+    private bool $identify = false;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
     }
 
-    public function getConfig()
+    public function getConfig(): Config
     {
         return $this->config;
     }
 
-    public function read($len = 0)
+    public function read(int $len = 0): string
     {
         $data         = '';
         $timeout      = $this->config->get("readTimeout")["default"];
@@ -41,11 +43,11 @@ class Tunnel
         return $data;
     }
 
-    public function write($buffer)
+    public function write(string $buffer): static
     {
         $timeout      = $this->config->get("writeTimeout")["default"];
         $this->writer = [$sock = $this->getSock()];
-        while (strlen($buffer) > 0) {
+        while (!empty($buffer)) {
             $writable = Stream::select($this->reader, $this->writer, $timeout);
             if ($writable > 0) {
                 $buffer = substr($buffer, Stream::sendTo($sock, $buffer));
@@ -76,7 +78,7 @@ class Tunnel
     }
 
     //TODO:
-    public function setIdentify()
+    public function setIdentify(): static
     {
         if (false === $this->identify) {
             $this->write(Writer::identify());

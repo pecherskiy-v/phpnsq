@@ -3,51 +3,65 @@
 namespace OkStuff\PhpNsq\Wire;
 
 use OkStuff\PhpNsq\Utility\IntPacker;
+use JetBrains\PhpStorm\Pure;
+
+use function strlen;
+use function count;
 
 class Writer
 {
-    const MAGIC_V2 = "  V2";
+    public const MAGIC_V2 = "  V2";
 
-    public static function magic()
+    public static function magic(): string
     {
         return self::MAGIC_V2;
     }
 
     //TODO:
-    public static function identify()
+    #[Pure] public static function identify(): string
     {
         return self::command("IDENTIFY");
     }
 
-    public static function pub($topic, $body)
+    private static function command($action, ...$params): string
     {
-        $cmd  = self::command("PUB", $topic);
+        return sprintf("%s %s%s", $action, implode(' ', $params), "\n");
+    }
+
+    public static function pub($topic, $body): string
+    {
+        $cmd = self::command("PUB", $topic);
         $size = IntPacker::uInt32(strlen($body), true);
 
         return $cmd . $size . $body;
     }
 
-    public static function mpub($topic, array $bodies)
+    public static function mpub($topic, array $bodies): string
     {
-        $cmd  = self::command("MPUB", $topic);
-        $num  = IntPacker::uInt32(count($bodies), true);
-        $mb   = implode(array_map(function ($body) {
-            return IntPacker::uint32(strlen($body), true) . $body;
-        }, $bodies));
+        $cmd = self::command("MPUB", $topic);
+        $num = IntPacker::uInt32(count($bodies), true);
+        $mb = implode(
+            array_map(
+                function ($body) {
+                    return IntPacker::uint32(strlen($body), true) . $body;
+                },
+                $bodies
+            )
+        );
         $size = IntPacker::uInt32(strlen($num . $mb), true);
 
         return $cmd . $size . $num . $mb;
     }
 
-    public static function dpub($topic, $deferTime, $body)
+    public static function dpub($topic, $deferTime, $body): string
     {
-        $cmd  = self::command("DPUB", $topic, $deferTime);
+        $cmd = self::command("DPUB", $topic, $deferTime);
         $size = IntPacker::uInt32(strlen($body), true);
 
         return $cmd . $size . $body;
     }
 
-    public static function sub($topic, $channel)
+    #[Pure] public static function sub($topic, $channel): string
     {
         return self::command("SUB", $topic, $channel);
     }
@@ -57,43 +71,40 @@ class Writer
         return self::command("RDY", $count);
     }
 
-    public static function fin($id)
+    #[Pure] public static function fin($id): string
     {
         return self::command("FIN", $id);
     }
 
-    public static function req($id, $timeout)
+    #[Pure] public static function req($id, $timeout): string
     {
         return self::command("REQ", $id, $timeout);
     }
 
-    public static function touch($id)
+    //TODO: should optimize use this command
+
+    #[Pure] public static function touch($id): string
     {
         return self::command("TOUCH", $id);
     }
 
-    //TODO: should optimize use this command
-    public static function cls()
+    #[Pure] public static function cls(): string
     {
         return self::command("CLS");
     }
 
-    public static function nop()
+    //TODO:
+
+    #[Pure] public static function nop(): string
     {
         return self::command("NOP");
     }
 
-    //TODO:
-    public static function auth($secret)
+    public static function auth($secret): string
     {
-        $cmd  = self::command("AUTH");
+        $cmd = self::command("AUTH");
         $size = IntPacker::uInt32(strlen($secret), true);
 
         return $cmd . $size . $secret;
-    }
-
-    private static function command($action, ...$params)
-    {
-        return sprintf("%s %s%s", $action, implode(' ', $params), "\n");
     }
 }
