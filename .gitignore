@@ -4,3 +4,7 @@
 .idea
 .sonarlint
 phpnsq.iml
+.ac-php-conf.json
+GPATH
+GRTAGS
+GTAGS

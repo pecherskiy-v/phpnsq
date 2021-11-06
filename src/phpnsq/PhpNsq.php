@@ -4,12 +4,12 @@ namespace OkStuff\PhpNsq;
 
 use Closure;
 use Exception;
-use OkStuff\PhpNsq\Tunnel\Pool;
-use OkStuff\PhpNsq\Tunnel\Tunnel;
-use OkStuff\PhpNsq\Wire\Reader;
-use OkStuff\PhpNsq\Wire\Writer;
-use Psr\Log\LoggerInterface;
-use OkStuff\PhpNsq\Command\NsqCommandInterface;
+use OkStuff\PhpNsq\Cmd\Base as SubscribeCommand;
+use OkStuff\PhpNsq\Conn\Pool;
+use OkStuff\PhpNsq\Conn\Nsqd;
+use OkStuff\PhpNsq\Utils\Logging;
+use OkStuff\PhpNsq\Stream\Reader;
+use OkStuff\PhpNsq\Stream\Writer;
 
 class PhpNsq
 {
@@ -25,7 +25,7 @@ class PhpNsq
     {
         $this->reader = new reader();
         $this->logger = $logger;
-        $this->pool = new Pool($nsqConfig);
+        $this->pool   = new Pool($nsqConfig, $nsqConfig["nsq"]["lookupd_switch"]);
     }
 
     public function getLogger(): LoggerInterface
@@ -51,64 +51,85 @@ class PhpNsq
     {
         $this->topic = $topic;
 
+        if ($this->pool->getLookupdCount() > 0) {
+            $lookupd = $this->pool->getLookupd();
+            $this->pool->addNsqdByLookupd($lookupd, $topic);
+        }
+
         return $this;
     }
 
-    public function publish($message): void
+    public function publish(string $message)
     {
+        $msg = null;
         try {
-            $tunnel = $this->pool->getTunnel();
-            $tunnel->write(Writer::pub($this->topic, $message));
+            $conn = $this->pool->getConn();
+            $conn->write(Writer::pub($this->topic, $message));
+
+            $msg = $this->reader->bindConn($conn)->bindFrame()->getMessage();
         } catch (Exception $e) {
             $this->logger->error("publish error", [$e]);
+            $msg = $e->getMessage();
         }
+
+        return $msg;
     }
 
-    public function publishMulti(...$bodies): void
+    public function publishMulti(string ...$messages)
     {
+        $msg = null;
         try {
-            $tunnel = $this->pool->getTunnel();
-            $tunnel->write(Writer::mpub($this->topic, $bodies));
+            $conn = $this->pool->getConn();
+            $conn->write(Writer::mpub($this->topic, $messages));
+
+            $msg = $this->reader->bindConn($conn)->bindFrame()->getMessage();
         } catch (Exception $e) {
             $this->logger->error("publish error", [$e]);
+            $msg = $e->getMessage();
         }
+
+        return $msg;
     }
 
-    public function publishDefer($message, $deferTime): void
+    public function publishDefer(string $message, int $deferTime)
     {
+        $msg = null;
         try {
-            $tunnel = $this->pool->getTunnel();
-            $tunnel->write(Writer::dpub($this->topic, $deferTime, $message));
+            $conn = $this->pool->getConn();
+            $conn->write(Writer::dpub($this->topic, $deferTime, $message));
+
+            $msg = $this->reader->bindConn($conn)->bindFrame()->getMessage();
         } catch (Exception $e) {
             $this->logger->error("publish error", [$e]);
+            $msg = $e->getMessage();
         }
+
+        return $msg;
     }
 
     public function subscribe(NsqCommandInterface $cmd, Closure $callback): void
     {
         try {
-            $tunnel = $this->pool->getTunnel();
-            $sock = $tunnel->getSock();
+            $conn = $this->pool->getConn();
+            $sock   = $conn->getSock();
 
-            $cmd->addReadStream(
-                $sock,
-                function ($sock) use ($tunnel, $callback) {
-                    $this->handleMessage($tunnel, $callback);
-                }
-            );
+            $cmd->addReadStream($sock, function ($sock) use ($conn, $callback) {
+                $this->handleMessage($conn, $callback);
+            });
 
-            $tunnel->write(Writer::sub($this->topic, $this->channel))->write(Writer::rdy($this->inFlight));
+            $conn->write(Writer::sub($this->topic, $this->channel))
+                ->write(Writer::rdy(1));
         } catch (Exception $e) {
             $this->logger->error("subscribe error", [$e]);
         }
     }
 
-    protected function handleMessage(Tunnel $tunnel, $callback): void
+    protected function handleMessage(Nsqd $conn, Closure $callback)
     {
-        $reader = $this->reader->bindTunnel($tunnel)->bindFrame();
+        $reader = $this->reader->bindConn($conn)->bindFrame();
 
         if ($reader->isHeartbeat()) {
-            $tunnel->write(Writer::nop());
+            $conn->write(Writer::nop());
         } elseif ($reader->isMessage()) {
             $msg = $reader->getMessage();
             try {
@@ -116,17 +137,15 @@ class PhpNsq
             } catch (Exception $e) {
                 $this->logger->error("Will be requeued: ", [$e->getMessage()]);
 
-                $tunnel->write(Writer::touch($msg->getId()))
-                       ->write(
-                           Writer::req(
-                               $msg->getId(),
-                               $tunnel->getConfig()->get("defaultRequeueDelay")["default"]
-                           )
-                       );
+                $conn->write(Writer::touch($msg->getId()))
+                    ->write(Writer::req(
+                        $msg->getId(),
+                        $conn->getConfig()->get("defaultRequeueDelay")["default"]
+                    ));
             }
 
-            $tunnel->write(Writer::fin($msg->getId()))
-                   ->write(Writer::rdy($this->inFlight));
+            $conn->write(Writer::fin($msg->getId()))
+                ->write(Writer::rdy(1));
         } elseif ($reader->isOk()) {
             $this->logger->info('Ignoring "OK" frame in SUB loop');
         } else {
