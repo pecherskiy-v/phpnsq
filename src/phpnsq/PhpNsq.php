@@ -4,12 +4,12 @@ namespace OkStuff\PhpNsq;
 
 use Closure;
 use Exception;
-use OkStuff\PhpNsq\Cmd\Base as SubscribeCommand;
-use OkStuff\PhpNsq\Conn\Pool;
+use OkStuff\PhpNsq\Cmd\NsqCommandInterface;
 use OkStuff\PhpNsq\Conn\Nsqd;
-use OkStuff\PhpNsq\Utils\Logging;
+use OkStuff\PhpNsq\Conn\Pool;
 use OkStuff\PhpNsq\Stream\Reader;
 use OkStuff\PhpNsq\Stream\Writer;
+use Psr\Log\LoggerInterface;
 
 class PhpNsq
 {
@@ -124,7 +124,10 @@ class PhpNsq
         }
     }
 
-    protected function handleMessage(Nsqd $conn, Closure $callback)
+    /**
+     * @throws Exception
+     */
+    protected function handleMessage(Nsqd $conn, Closure $callback): void
     {
         $reader = $this->reader->bindConn($conn)->bindFrame();
 

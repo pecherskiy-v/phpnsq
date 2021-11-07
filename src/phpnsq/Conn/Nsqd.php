@@ -2,31 +2,36 @@
 
 namespace OkStuff\PhpNsq\Conn;
 
-use OkStuff\PhpNsq\Utils\Logging;
 use OkStuff\PhpNsq\Stream\Reader;
 use OkStuff\PhpNsq\Stream\Socket;
 use OkStuff\PhpNsq\Stream\Writer;
 
+use function strlen;
+use Exception;
+
 class Nsqd
 {
-    private $config;
+    private Config $config;
     private $sock;
-    private $writer = [];
-    private $reader = [];
+    private array $writer = [];
+    private array $reader = [];
 
-    private $identify = false;
+    private bool $identify = false;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
     }
 
-    public function getConfig()
+    public function getConfig(): Config
     {
         return $this->config;
     }
 
-    public function read($len = 0)
+    /**
+     * @throws Exception
+     */
+    public function read($len = 0): string
     {
         $data         = '';
         $timeout      = $this->config->get("readTimeout")["default"];
@@ -43,11 +48,14 @@ class Nsqd
         return $data;
     }
 
-    public function write($buffer)
+    /**
+     * @throws Exception
+     */
+    public function write($buffer): static
     {
         $timeout      = $this->config->get("writeTimeout")["default"];
         $this->writer = [$sock = $this->getSock()];
-        while (strlen($buffer) > 0) {
+        while ('' !== $buffer) {
             $writable = Socket::select($this->reader, $this->writer, $timeout);
             if ($writable > 0) {
                 $buffer = substr($buffer, Socket::sendTo($sock, $buffer));
@@ -57,11 +65,18 @@ class Nsqd
         return $this;
     }
 
+    /**
+     * @throws Exception
+     */
     public function __destruct()
     {
         fclose($this->getSock());
     }
 
+    /**
+     * @throws \JsonException
+     * @throws Exception
+     */
     public function getSock()
     {
         if (null === $this->sock) {
@@ -116,12 +131,15 @@ class Nsqd
         return $this->sock;
     }
 
-    private function auth()
+    /**
+     * @throws Exception
+     */
+    private function auth(): void
     {
         if ($this->config->get("authSwitch")) {
             $this->write(Writer::auth($this->config->get("authSecret")));
             $msg = (new Reader())->bindConn($this)->bindFrame()->getMessage();
-            (new Logging("PHPNSQ", $this->config->get("logdir")))->info($msg);
+            // (new Logging("PHPNSQ", $this->config->get("logdir")))->info($msg);
         }
     }
 }

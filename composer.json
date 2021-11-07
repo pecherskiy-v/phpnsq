@@ -1,31 +1,30 @@
 {
-    "name": "pecherskiy-v/phpnsq",
-    "description": "PHP Client for nsq",
-    "type": "library",
-    "keywords": ["nsq", "queue"],
-    "homepage": "https://github.com/wk30/phpnsq",
-    "require": {
-        "php": "8.*",
-        "psr/log": "^1.1",
-        "symfony/console": "^5.2",
-        "react/event-loop": "^v0.4|^v0.5|^v1.1",
-        "bramus/monolog-colored-line-formatter": "^3.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "OkStuff\\PhpNsq\\": "src/phpnsq/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "OkStuff\\PhpNsq\\Tests\\": "tests/"
-        }
-    },
-    "authors": [
-        {
-            "name": "wk30",
-            "email": "foo_stacker@yeah.net"
-        }
-    ],
-    "license": "MIT"
+  "name": "pecherskiy-v/phpnsq",
+  "description": "PHP Client for nsq",
+  "type": "library",
+  "keywords": [
+    "nsq",
+    "queue"
+  ],
+  "homepage": "https://github.com/wk30/phpnsq",
+  "require": {
+    "php": "8.*",
+    "ext-curl": "*",
+    "bramus/monolog-colored-line-formatter": "^3.0",
+    "psr/log": "^1.1",
+    "react/event-loop": "^v0.4|^v0.5|^v1.1",
+    "symfony/console": "^5.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "OkStuff\\PhpNsq\\": "src/phpnsq/"
+    }
+  },
+  "authors": [
+    {
+      "name": "wk30",
+      "email": "foo_stacker@yeah.net"
+    }
+  ],
+  "license": "MIT"
 }

@@ -7,29 +7,36 @@ use OkStuff\PhpNsq\Conn\Nsqd;
 
 class Reader
 {
-    const TYPE_RESPONSE = 0;
-    const TYPE_ERROR    = 1;
-    const TYPE_MESSAGE  = 2;
+    public const TYPE_RESPONSE = '0';
 
-    const HEARTBEAT = "_heartbeat_";
-    const OK        = "OK";
+    public const TYPE_ERROR = '1';
 
-    private $conn;
-    private $frame;
+    public const TYPE_MESSAGE = '2';
+
+    public const HEARTBEAT = "_heartbeat_";
+
+    public const OK = "OK";
+
+    private ?Nsqd $conn;
+    private array $frame;
 
     public function __construct(Nsqd $conn = null)
     {
         $this->conn = $conn;
     }
 
-    public function bindConn(Nsqd $conn)
+    public function bindConn(Nsqd $conn): static
     {
         $this->conn = $conn;
 
         return $this;
     }
 
-    public function bindFrame()
+    /**
+     * @return $this
+     * @throws Exception
+     */
+    public function bindFrame(): static
     {
         $size = 0;
         $type = 0;
@@ -46,9 +53,9 @@ class Reader
         ];
 
         try {
-            if (self::TYPE_RESPONSE == $type) {
+            if (self::TYPE_RESPONSE === $type) {
                 $frame["response"] = $this->readString($size - 4);
-            } elseif (self::TYPE_ERROR == $type) {
+            } elseif (self::TYPE_ERROR === $type) {
                 $frame["error"] = $this->readString($size - 4);
             }
         } catch (Exception $e) {
@@ -74,52 +81,46 @@ class Reader
     {
         $msg = null;
         if (null !== $this->frame) {
-            switch ($this->frame["type"]) {
-                case self::TYPE_MESSAGE:
-                    $msg = (new Message())->setTimestamp($this->readInt64(8))
-                        ->setAttempts($this->readUInt16(2))
-                        ->setId($this->readString(16))
-                        ->setBody($this->readString($this->frame["size"] - 30))
-                        ->setDecoded();
-                    break;
-                case self::TYPE_RESPONSE:
-                    $msg = $this->frame["response"];
-                    break;
-                case self::TYPE_ERROR:
-                    $msg = $this->frame["error"];
-                    break;
-            }
+            $msg = match ((string)$this->frame["type"]) {
+                self::TYPE_MESSAGE => (new Message())->setTimestamp($this->readInt64(8))
+                                                     ->setAttempts($this->readUInt16(2))
+                                                     ->setId($this->readString(16))
+                                                     ->setBody($this->readString($this->frame["size"] - 30))
+                                                     ->setDecoded(),
+                self::TYPE_RESPONSE => $this->frame["response"],
+                self::TYPE_ERROR => $this->frame["error"],
+            };
             
         }
 
         return $msg;
     }
 
-    public function isMessage()
+    public function isMessage(): bool
     {
-        return self::TYPE_MESSAGE == $this->frame["type"];
+        return self::TYPE_MESSAGE === (string)$this->frame["type"];
     }
 
-    public function isHeartbeat()
+    public function isHeartbeat(): bool
     {
         return $this->isResponse(self::HEARTBEAT);
     }
 
-    public function isOk()
+    public function isOk(): bool
     {
         return $this->isResponse(self::OK);
     }
 
-    public function isResponse($response = null)
+    public function isResponse($response = null): bool
     {
         return isset($this->frame["response"])
-            && self::TYPE_RESPONSE == $this->frame["type"]
+            && self::TYPE_RESPONSE === (string)$this->frame["type"]
             && (null === $response || $response === $this->frame["response"]);
     }
 
-    private function readInt($size)
+    private function readInt($size): string
     {
-        list(, $tmp) = unpack("N", $this->conn->read($size));
+        [, $tmp] = unpack("N", $this->conn->read($size));
 
         return sprintf("%u", $tmp);
     }
@@ -134,10 +135,10 @@ class Reader
         return IntPacker::uInt16($this->conn->read($size));
     }
 
-    private function readString($size)
+    private function readString($size): string
     {
         $bytes = unpack("c{$size}chars", $this->conn->read($size));
 
-        return implode(array_map("chr", $bytes));
+        return implode(array_map('\chr', $bytes));
     }
 }

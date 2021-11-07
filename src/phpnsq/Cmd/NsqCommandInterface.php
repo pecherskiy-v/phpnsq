@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OkStuff\PhpNsq\Command;
+namespace OkStuff\PhpNsq\Cmd;
 
 use Closure;
 

@@ -1,28 +1,28 @@
 <?php
 namespace OkStuff\PhpNsq\Conn;
 
-use Exception;
-use OkStuff\PhpNsq\Stream\Socket;
-
 class Lookupd
 {
-    const lookupTopicUri = "http://%s:%d/lookup?topic=%s";
+    public const LOOKUP_TOPIC_URI = "http://%s:%d/lookup?topic=%s";
 
-    private $config;
+    private Config $config;
 
-    private $nsqdConnected = false;
+    private bool $nsqdConnected = false;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
     }
 
-    public function getConfig()
+    public function getConfig(): Config
     {
         return $this->config;
     }
 
-    public function getProducers(string $topic)
+    /**
+     * @throws \JsonException
+     */
+    public function getProducers(string $topic): array
     {
         $nsqdConns = [];
 
@@ -30,12 +30,12 @@ class Lookupd
             return $nsqdConns;
         }
 
-        $defaults = array(
-            CURLOPT_URL => sprintf(self::lookupTopicUri, $this->config->host, $this->config->port, $topic),
+        $defaults = [
+            CURLOPT_URL => sprintf(self::LOOKUP_TOPIC_URI, $this->config->host, $this->config->port, $topic),
             CURLOPT_HEADER => 0,
             CURLOPT_RETURNTRANSFER => TRUE,
             CURLOPT_TIMEOUT => 4
-        );
+        ];
       
         $ch = curl_init();
         curl_setopt_array($ch, $defaults);
@@ -44,13 +44,13 @@ class Lookupd
         }
         curl_close($ch);
 
-        $d = json_decode($result, true);
-        if (isset($d["message"]) && $d["message"] == "TOPIC_NOT_FOUND") {
+        $d = json_decode($result, true, 512, JSON_THROW_ON_ERROR);
+        if (isset($d["message"]) && "TOPIC_NOT_FOUND" === $d["message"]) {
             return $nsqdConns;
         }
 
         foreach ($d["producers"] as $producer) {
-            array_push($nsqdConns, $this->connectProducer($producer));
+            $nsqdConns[] = $this->connectProducer($producer);
         }
 
         $this->nsqdConnected = true;
@@ -58,7 +58,7 @@ class Lookupd
         return $nsqdConns;
     }
 
-    private function connectProducer($producer)
+    private function connectProducer($producer): Nsqd
     {
         $config = new Config($producer["broadcast_address"], $producer["tcp_port"]);
         $config->set("authSwitch", $this->config->get("authSwitch"))

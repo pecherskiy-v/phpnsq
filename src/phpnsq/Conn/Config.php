@@ -4,62 +4,61 @@ namespace OkStuff\PhpNsq\Conn;
 
 use Exception;
 
+use function is_array;
+use function count;
+
 class Config
 {
-    public $host;
-    public $port;
+    public string $host;
+    public int $port;
 
-    private $clientTimeout = 30;
+    private int $clientTimeout = 30;
 
-    private $readTimeout  = [
+    private array $readTimeout = [
         'default' => 60,
-        'min'     => 0.1,
-        'max'     => 5 * 60,
+        'min' => 0.1,
+        'max' => 5 * 60,
     ];
-    private $writeTimeout = [
+    private array $writeTimeout = [
         'default' => 1,
-        'min'     => 0.1,
-        'max'     => 5 * 60,
+        'min' => 0.1,
+        'max' => 5 * 60,
     ];
 
-    //TODO: need to be fixed
-    private $backoffStrategy;
-    private $maxBackoffDuration = [
+    private array $maxBackoffDuration = [
         'default' => 2 * 60,
-        'min'     => 0,
-        'max'     => 60 * 60,
+        'min' => 0,
+        'max' => 60 * 60,
     ];
-    private $backoffMultiplier  = [
+    private array $backoffMultiplier = [
         'default' => 1,
-        'min'     => 0,
-        'max'     => 60 * 60,
+        'min' => 0,
+        'max' => 60 * 60,
     ];
 
-    private $maxAttempts = [
+    private array $maxAttempts = [
         'default' => 5,
-        'min'     => 0,
-        'max'     => 65535,
+        'min' => 0,
+        'max' => 65535,
     ];
 
-    private $heartbeatInterval = 30;
+    private int $heartbeatInterval = 30;
 
-    private $tlsConfig;
+    private bool $blocking = true;
 
-    private $blocking = true;
+    private bool $authSwitch = false;
 
-    private $authSwitch = false;
+    private string $authSecret = "";
 
-    private $authSecret = "";
-    
-    private $logdir = "";
+    private string $logdir = "";
 
-    public function __construct($host = "", $port = 0)
+    public function __construct(string $host = "", int $port = 0)
     {
         $this->host = $host;
         $this->port = $port;
     }
 
-    public function set($key, $val)
+    public function set($key, $val): static
     {
         if (is_array($this->$key)) {
             $this->$key['default'] = $val;
@@ -75,12 +74,14 @@ class Config
         return $this->$key;
     }
 
-    //check if all the value is between min and max value.
-    public function validate()
+    /**
+     * @throws Exception
+     */
+    public function validate(): bool
     {
         foreach ($this as $key => $val) {
-            if (is_array($val) && count($val) == 3) {
-                if (!isset($val['default']) || !isset($val['min']) || !isset($val['max'])) {
+            if (is_array($val) && 3 === count($val)) {
+                if (!isset($val['default'], $val['min'], $val['max'])) {
                     throw new Exception(sprintf("invalid %s value", $key));
                 }
 
