@@ -60,7 +60,7 @@ class Lookupd
 
     private function connectProducer($producer): Nsqd
     {
-        $config = new Config($producer["broadcast_address"], $producer["tcp_port"]);
+        $config = new Config(explode(':',$producer['remote_address'])[0], $producer["tcp_port"]);
         $config->set("authSwitch", $this->config->get("authSwitch"))
             ->set("authSecret", $this->config->get("authSecret"))
             ->set("logdir", $this->config->get("logdir"));
