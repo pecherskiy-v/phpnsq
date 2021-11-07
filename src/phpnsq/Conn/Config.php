@@ -52,7 +52,7 @@ class Config
 
     private string $logdir = "";
 
-    private ?array $tlsConfig;
+    private ?array $tlsConfig = null;
     
     public function __construct(string $host = "", int $port = 0)
     {
