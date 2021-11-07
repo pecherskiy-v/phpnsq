@@ -52,6 +52,8 @@ class Config
 
     private string $logdir = "";
 
+    private array $tlsConfig = [];
+    
     public function __construct(string $host = "", int $port = 0)
     {
         $this->host = $host;
