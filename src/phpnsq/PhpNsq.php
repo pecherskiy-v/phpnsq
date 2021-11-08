@@ -117,8 +117,7 @@ class PhpNsq
                 $this->handleMessage($conn, $callback);
             });
 
-            $conn->write(Writer::sub($this->topic, $this->channel))
-                ->write(Writer::rdy(1));
+            $conn->write(Writer::sub($this->topic, $this->channel))->write(Writer::rdy($this->inFlight));
         } catch (Exception $e) {
             $this->logger->error("subscribe error", [$e]);
         }
