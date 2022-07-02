@@ -53,7 +53,13 @@ class Config
     private string $logdir = "";
 
     private ?array $tlsConfig = null;
-    
+
+    private array $defaultRequeueDelay = [
+        'default' => 5000,
+        'min' => 0,
+        'max' => 65535,
+    ];
+
     public function __construct(string $host = "", int $port = 0)
     {
         $this->host = $host;
