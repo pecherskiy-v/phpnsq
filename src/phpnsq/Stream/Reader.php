@@ -20,7 +20,7 @@ class Reader
     private ?Nsqd $conn;
     private array $frame;
 
-    public function __construct(Nsqd $conn = null)
+    public function __construct(?Nsqd $conn = null)
     {
         $this->conn = $conn;
     }
